@@ -1,7 +1,7 @@
 ---
 title: "group add-volume — register a ZFS volume for backup"
 sidebarTitle: "add-volume"
-description: "Register a ZFS volume with a named backup group, or the default group if none is specified, using the --volume and --group flags to control which volume and group to target."
+description: "Register a ZFS volume with a named backup group so it is included in snapshot, sync, and trim operations. Omit --group to target the default group."
 ---
 
 Backup groups let you batch together multiple ZFS volumes so that snapshot, sync, and trim operations can be applied to all of them in a single command. `group add-volume` registers a ZFS volume with a group so it is included in those batch operations. If you do not specify a group, the volume is added to the `default` group.

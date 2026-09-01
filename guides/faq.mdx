@@ -1,7 +1,7 @@
 ---
-title: "Frequently asked questions about ZFS Backup Blob"
+title: "ZFS Backup Blob FAQ: Scheduling, Safety, and Config"
 sidebarTitle: "FAQ"
-description: "Answers to common questions about scheduling automated backups, preventing state file corruption, recovering from upload errors, and using per-group configuration files."
+description: "Common ZFS Backup Blob questions: cron scheduling, state file safety, retry behavior on upload errors, and per-group configuration files."
 ---
 
 The questions below cover the scenarios that come up most often when running ZFS Backup Blob in production. If your question is not listed here, check the [architecture guide](/guides/architecture) for deeper background on how the tool works internally.
@@ -23,7 +23,7 @@ Adjust the schedule and group flags to match your retention policy. Run `crontab
 </Accordion>
 
 <Accordion title="How do I make sure the state file is not corrupted?">
-The `.backupstate.yaml` state file is read and written on every snapshot and sync operation. If two `zfs-backup-blob` processes run concurrently against the same group, they can produce conflicting writes and leave the state file in an inconsistent state.
+The `.backupstate.yaml` state file is read and written during every sync operation. If two `zfs-backup-blob` processes run concurrently against the same group, they can produce conflicting writes and leave the state file in an inconsistent state.
 
 To prevent this, ensure that no two cron jobs (or other automation scripts) operate on the same group at the same time. If your schedule makes overlap possible — for example, a sync job that occasionally runs longer than its interval — wrap the invocation in a DIY lockfile:
 

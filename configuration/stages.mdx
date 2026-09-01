@@ -35,19 +35,19 @@ uploadPartSize: 62914560  # optional, in bytes
   Must be `s3`.
 </ParamField>
 
-<ParamField path="bucket" type="string" required>
+<ParamField path="bucket" type="string">
   The name of the S3 bucket to upload backup blobs to.
 </ParamField>
 
-<ParamField path="accessKey" type="string" required>
+<ParamField path="accessKey" type="string">
   The access key ID used to authenticate with the S3 API.
 </ParamField>
 
-<ParamField path="accessSecret" type="string" required>
+<ParamField path="accessSecret" type="string">
   The secret access key used to authenticate with the S3 API.
 </ParamField>
 
-<ParamField path="region" type="string" required>
+<ParamField path="region" type="string">
   The AWS region (or equivalent region string) of the target bucket.
 </ParamField>
 
@@ -120,12 +120,12 @@ readSpeed: 1048576   # in bytes per second
   The name of the next stage in the pipeline.
 </ParamField>
 
-<ParamField path="writeSpeed" type="int" required>
-  Maximum upload (write) throughput in bytes per second when sending a backup to the S3 sink. Set to `0` or omit to apply no limit.
+<ParamField path="writeSpeed" type="int64" required>
+  Maximum upload (write) throughput in bytes per second when sending a backup to the S3 sink.
 </ParamField>
 
-<ParamField path="readSpeed" type="int" required>
-  Maximum download (read) throughput in bytes per second when restoring a backup from the S3 sink. Set to `0` or omit to apply no limit.
+<ParamField path="readSpeed" type="int64" required>
+  Maximum download (read) throughput in bytes per second when restoring a backup from the S3 sink.
 </ParamField>
 
 ---

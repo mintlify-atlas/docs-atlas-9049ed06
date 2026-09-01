@@ -1,7 +1,7 @@
 ---
-title: "backup restore — restore a ZFS volume from blob storage"
+title: "backup restore — Restore a ZFS Volume from Blob Storage"
 sidebarTitle: "restore"
-description: "Restore a ZFS volume from a backup stored in blob storage. Requires --blob-key and --target. By default, --restoreAll replays the full backup chain including all incrementals."
+description: "Download and receive a ZFS backup from blob storage into a target dataset. Requires --blob-key and --target; --restoreAll replays the chain."
 ---
 
 `backup restore` downloads a backup from blob storage and receives it into a ZFS volume at the path you specify. By default the command walks back through the snapshot chain to find the most recent full backup and replays every incremental on top of it, fully reconstructing the volume state at the point the specified snapshot was taken.

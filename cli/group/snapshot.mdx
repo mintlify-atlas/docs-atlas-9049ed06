@@ -48,6 +48,3 @@ zfs-backup-blob group snapshot --type incremental --group production
   ZFS snapshots are not created atomically across multiple volumes. Each volume in the group is snapshotted in sequence, so there may be a small time difference between the earliest and latest snapshot in a single run.
 </Note>
 
-<Info>
-  Snapshot names follow the pattern `backup_blob_<ISO8601 timestamp>`, for example `backup_blob_2024-06-01T02:00:00Z`. This naming scheme is used internally for ordering and reconciliation during sync.
-</Info>

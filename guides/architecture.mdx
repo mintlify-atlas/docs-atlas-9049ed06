@@ -1,7 +1,7 @@
 ---
-title: "ZFS Backup Blob internals and data architecture"
+title: "ZFS Backup Blob Architecture: Internals and Data Layout"
 sidebarTitle: "Architecture"
-description: "How ZFS Backup Blob names snapshots, organises blobs in bucket folders, handles full vs incremental backup relationships, and reconciles local and remote state during a sync."
+description: "How ZFS Backup Blob names snapshots, organises blobs in bucket folders, handles full vs incremental backups, and reconciles state on sync."
 ---
 
 Understanding how ZFS Backup Blob stores and tracks data makes it easier to reason about backup integrity, restore procedures, and the consequences of manual ZFS operations alongside the tool.
@@ -22,7 +22,7 @@ backup_blob_<date_of_creation>
 
 The date component is an RFC 3339 timestamp with colons replaced by hyphens to keep the name URI-safe — for example, `backup_blob_2024-08-11T00-10-01Z`. This format is used consistently as both the ZFS snapshot name and the blob object name in the bucket.
 
-Alongside the backup objects, a state file named `.backupstate.yaml` is stored in the same folder as the backups for each volume. This file records metadata about every backup — including type, size, parent reference, and the current `HEAD` snapshot — and is read and updated on every snapshot and sync operation.
+Alongside the backup objects, a state file named `.backupstate.yaml` is stored in the same folder as the backups for each volume. This file records metadata about every backup — including type, size, parent reference, and the current `HEAD` snapshot — and is read and updated each time a backup is uploaded during a sync operation.
 
 ## Snapshot types
 
@@ -38,7 +38,7 @@ Because each incremental backup depends on the one before it, a complete restore
 
 Snapshots created via `group snapshot` are automatically tagged internally so that the next `group sync` knows to include them. Snapshots you create manually with the `zfs snapshot` command are intentionally ignored — this design avoids interference with other tools or workflows that also manage ZFS snapshots on the same system.
 
-When `group sync` runs, it compares the HEAD snapshot recorded in the local state against the HEAD recorded in the remote `.backupstate.yaml` state file. Only the snapshots that exist locally but are absent from remote storage are uploaded, keeping each sync as narrow as possible.
+When `group sync` runs, it fetches the `.backupstate.yaml` state file from blob storage to determine the remote HEAD — the most recent snapshot already present in the bucket. It then compares that against the most recent tagged snapshot found locally. Only the snapshots that exist locally but are absent from remote storage are uploaded, keeping each sync as narrow as possible.
 
 For example, if your local history contains snap1 through snap4 (with snap4 as the local HEAD) and remote storage contains only snap1 through snap2 (with snap2 as the remote HEAD), the sync command will upload snap3 and snap4 — and no more.
 

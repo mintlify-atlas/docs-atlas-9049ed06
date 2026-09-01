@@ -1,7 +1,7 @@
 ---
-title: "backup incremental — upload a ZFS snapshot delta"
+title: "backup incremental — Upload a ZFS Incremental Backup"
 sidebarTitle: "incremental"
-description: "Upload only the data changed between two ZFS snapshots. Incremental backups are significantly smaller than full backups and require both --snap and --base flags."
+description: "Upload only changed blocks between two ZFS snapshots using --snap and --base. Incremental backups are smaller and faster than full backups."
 ---
 
 `backup incremental` computes the delta between two local ZFS snapshots and uploads only the changed blocks to blob storage. This produces significantly smaller objects than a full backup, making it the preferred strategy for frequent, recurring backups after an initial full baseline has been established.

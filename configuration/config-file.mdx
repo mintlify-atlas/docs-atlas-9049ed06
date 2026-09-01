@@ -58,11 +58,11 @@ stages:
   A map of named stage objects that together form the data pipeline. Each entry must have a `type` field specifying the stage kind (`s3`, `zfs`, `throttle`, or `crypt`). The pipeline is wired together by each stage's `remote` field, which references the name of the next stage in the chain. See [Stages](/configuration/stages) for the full field reference for each stage type.
 </ParamField>
 
-<ParamField path="remote_trim_policy" type="string" required>
+<ParamField path="remote_trim_policy" type="string">
   A policy string controlling how many full (`F`) and incremental (`I`) backup blobs to retain on remote storage. Required when running remote trim operations. See [Trim Policies](/configuration/trim-policies) for details on the DSL.
 </ParamField>
 
-<ParamField path="local_trim_policy" type="string" required>
+<ParamField path="local_trim_policy" type="string">
   A policy string controlling how many full (`F`) and incremental (`I`) ZFS snapshots to retain locally. Required when running local trim operations. See [Trim Policies](/configuration/trim-policies) for details on the DSL.
 </ParamField>
 

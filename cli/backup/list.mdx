@@ -1,7 +1,7 @@
 ---
-title: "backup list — view remote backups for a volume"
+title: "backup list — List Remote ZFS Backups in Blob Storage"
 sidebarTitle: "list"
-description: "List all backups stored in blob storage for a given ZFS volume. The output table shows each backup's key, type (full or incremental), and size — use the key with backup restore."
+description: "Query blob storage for all backups stored under a ZFS volume path. Returns each entry's key, type, and size for use with backup restore."
 ---
 
 `backup list` queries your configured blob storage and prints a table of all backups held remotely for a specific ZFS volume. Use this command to audit what is stored, verify that recent backups landed successfully, or look up the exact blob key needed to run a restore.

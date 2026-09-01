@@ -1,7 +1,7 @@
 ---
-title: "ZFS Backup Blob: back up ZFS snapshots to blob storage"
+title: "ZFS Backup Blob: Overview, Features, and Stage Pipeline"
 sidebarTitle: "Introduction"
-description: "ZFS Backup Blob is a CLI tool for backing up ZFS snapshots to any S3-compatible storage, with built-in AES-256-GCM encryption, bandwidth throttling, and automated trim policies."
+description: "Understand ZFS Backup Blob: stage pipelines, full and incremental backups, encryption, throttling, trim policies, and release channels."
 ---
 
 ZFS Backup Blob is an open-source command-line tool that backs up ZFS snapshots to S3-compatible blob storage. It removes the operational burden of maintaining a dedicated ZFS backup server — instead, all you need is a bucket in any S3-compatible service. Designed for Linux and macOS sysadmins managing ZFS pools, ZFS Backup Blob keeps things deliberately simple: it handles both full and incremental snapshot transfers, optional in-flight encryption, configurable bandwidth throttling, and automated retention policies, all driven by a single YAML config file.
@@ -14,9 +14,11 @@ A minimal pipeline looks like this:
 
 ```yaml
 stages:
-  - type: zfs
+  zfs:
+    type: zfs
     remote: s3
-  - type: s3
+  s3:
+    type: s3
     bucket: my-backup-bucket
     accessKey: AKIAIOSFODNN7EXAMPLE
     accessSecret: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
@@ -27,16 +29,20 @@ You can insert a `crypt` stage to encrypt data before it leaves your machine, a 
 
 ```yaml
 stages:
-  - type: zfs
+  zfs:
+    type: zfs
     remote: throttle
-  - type: throttle
+  throttle:
+    type: throttle
     remote: crypt
-    writeSpeed: "50MB"
-    readSpeed: "50MB"
-  - type: crypt
+    writeSpeed: 52428800
+    readSpeed: 52428800
+  crypt:
+    type: crypt
     remote: s3
     password: "a-strong-passphrase"
-  - type: s3
+  s3:
+    type: s3
     bucket: my-backup-bucket
     accessKey: AKIAIOSFODNN7EXAMPLE
     accessSecret: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
@@ -55,7 +61,7 @@ Stages are the only extension point in ZFS Backup Blob — scheduling is intenti
     Add a `crypt` stage to encrypt all snapshot data with AES-256-GCM before it leaves your machine. The encryption password is set in your config file and never sent to the remote.
   </Card>
   <Card title="Bandwidth Throttling" icon="gauge">
-    Add a `throttle` stage to cap upload (`writeSpeed`) and download (`readSpeed`) throughput. Useful for keeping backups from saturating a production network link.
+    Add a `throttle` stage to cap upload (`writeSpeed`) and download (`readSpeed`) throughput in bytes per second. Useful for keeping backups from saturating a production network link.
   </Card>
   <Card title="S3-Compatible Storage" icon="cloud">
     Works with AWS S3, Backblaze B2, MinIO, and any other S3-compatible API. Point the `baseEndpoint` field at your provider's endpoint and ZFS Backup Blob handles the rest.

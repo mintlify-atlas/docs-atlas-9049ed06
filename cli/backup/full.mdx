@@ -1,7 +1,7 @@
 ---
-title: "backup full — upload a complete ZFS snapshot"
+title: "backup full: Upload a Full ZFS Snapshot to Blob Storage"
 sidebarTitle: "full"
-description: "Upload an entire ZFS snapshot to blob storage as a full backup. Use this for the first backup of a volume or as a periodic full baseline before chaining incrementals."
+description: "Stream a complete ZFS snapshot to S3-compatible blob storage. Use backup full to create a self-contained baseline before chaining incremental backups."
 ---
 
 `backup full` streams a complete ZFS snapshot to your configured S3-compatible blob storage. Use it when setting up a new volume for the first time or when you want to establish a fresh baseline after a series of incremental backups. Full backups are larger than incrementals but are self-contained — they can be restored without any prior snapshot chain.
