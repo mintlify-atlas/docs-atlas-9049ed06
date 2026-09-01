@@ -1,0 +1,51 @@
+---
+title: "backup incremental — upload a ZFS snapshot delta"
+sidebarTitle: "incremental"
+description: "Upload only the data changed between two ZFS snapshots. Incremental backups are significantly smaller than full backups and require both --snap and --base flags."
+---
+
+`backup incremental` computes the delta between two local ZFS snapshots and uploads only the changed blocks to blob storage. This produces significantly smaller objects than a full backup, making it the preferred strategy for frequent, recurring backups after an initial full baseline has been established.
+
+## Usage
+
+```bash
+zfs-backup-blob backup incremental [flags]
+```
+
+## Flags
+
+<ParamField query="-s, --snap" type="string" required>
+  The new snapshot to upload, in `pool/vol@snapshot` format. This is the snapshot whose changes — relative to `--base` — will be sent to blob storage.
+
+  **Example:** `zfs-pool/volume1@backup_blob_2024-08-12T00-00-00Z`
+</ParamField>
+
+<ParamField query="-b, --base" type="string" required>
+  The base snapshot to diff against, in `pool/vol@snapshot` format. The delta uploaded to blob storage represents all changes made between this snapshot and the one specified by `--snap`.
+
+  **Example:** `zfs-pool/volume1@backup_blob_2024-08-11T00-00-00Z`
+</ParamField>
+
+<ParamField query="-c, --configPath" type="string" default="~/.bbackup.yaml">
+  Path to the configuration file. Inherited from the root command.
+</ParamField>
+
+<ParamField query="-l, --logLevel" type="string" default="disabled">
+  Log verbosity level. Set to `debug` for verbose output or `disabled` to suppress logs. Inherited from the root command.
+</ParamField>
+
+## Example
+
+```bash
+zfs-backup-blob backup incremental \
+  --snap zfs-pool/volume1@backup_blob_2024-08-12T00-00-00Z \
+  --base zfs-pool/volume1@backup_blob_2024-08-11T00-00-00Z
+```
+
+<Warning>
+  The base snapshot specified by `--base` must already have been uploaded to blob storage before running an incremental backup. If the base backup is missing from remote storage, the restore chain will be broken and the incremental cannot be replayed during recovery.
+</Warning>
+
+<Note>
+  For automated workflows, prefer `group snapshot --type incremental` followed by `group sync` over calling `backup incremental` directly. The group commands handle base snapshot resolution, naming, and upload automatically across all registered volumes.
+</Note>

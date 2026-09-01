@@ -1,0 +1,48 @@
+---
+title: "ZFS Backup Blob CLI command reference"
+sidebarTitle: "Overview"
+description: "Complete reference for the zfs-backup-blob CLI. Covers the backup and group command groups, global flags (--configPath, --logLevel), and the default config file location at ~/.bbackup.yaml."
+---
+
+`zfs-backup-blob` is organized into two top-level command groups — `backup` and `group` — each exposing a focused set of subcommands. Every command inherits a pair of global flags for configuration and logging that can be passed at any level of the hierarchy.
+
+## Global flags
+
+These flags are available on every command and subcommand.
+
+<ParamField query="-c, --configPath" type="string" default="~/.bbackup.yaml">
+  Path to the YAML configuration file. Override this to use a non-default config location, for example when running multiple backup targets with separate configs.
+</ParamField>
+
+<ParamField query="-l, --logLevel" type="string" default="disabled">
+  Controls log verbosity. Accepted values are `debug` (verbose structured output) and `disabled` (silent except for errors).
+</ParamField>
+
+## Command groups
+
+<CardGroup cols={2}>
+  <Card title="backup" icon="database" href="/cli/backup/full">
+    Upload and restore ZFS snapshots to and from S3-compatible blob storage. Subcommands: `full`, `incremental`, `list`, `restore`.
+  </Card>
+  <Card title="group" icon="layer-group" href="/cli/group/add-volume">
+    Manage groups of ZFS volumes for automated snapshot and sync workflows. Subcommands: `add-volume`, `list-volumes`, `snapshot`, `sync`, `trim-local`, `trim-remote`.
+  </Card>
+</CardGroup>
+
+## Command tree
+
+```
+zfs-backup-blob
+├── backup
+│   ├── full
+│   ├── incremental
+│   ├── list
+│   └── restore
+└── group
+    ├── add-volume
+    ├── list-volumes
+    ├── snapshot
+    ├── sync
+    ├── trim-local
+    └── trim-remote
+```

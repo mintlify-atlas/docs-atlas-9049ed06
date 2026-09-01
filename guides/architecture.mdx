@@ -1,0 +1,47 @@
+---
+title: "ZFS Backup Blob internals and data architecture"
+sidebarTitle: "Architecture"
+description: "How ZFS Backup Blob names snapshots, organises blobs in bucket folders, handles full vs incremental backup relationships, and reconciles local and remote state during a sync."
+---
+
+Understanding how ZFS Backup Blob stores and tracks data makes it easier to reason about backup integrity, restore procedures, and the consequences of manual ZFS operations alongside the tool.
+
+## Overview
+
+Under the hood, the `zfs-backup-blob` CLI wraps two lower-level interfaces: the system `zfs` CLI for all ZFS snapshot operations, and the AWS S3 SDK for all blob storage interactions. Data produced by a ZFS send stream flows through the stage pipeline defined in your configuration before it reaches the bucket — allowing middleware such as throttling or encryption to be applied transparently.
+
+## Blob folder organisation
+
+Backups in the bucket mirror the ZFS volume hierarchy. A volume named `zfs-pool/volume1` maps to the path `zfs-pool/volume1/` inside the bucket. If a `prefix` is specified in your configuration, that prefix is prepended to every path so all ZFS Backup Blob objects are namespaced within the bucket.
+
+Snapshots follow a fixed naming scheme:
+
+```
+backup_blob_<date_of_creation>
+```
+
+The date component is an RFC 3339 timestamp with colons replaced by hyphens to keep the name URI-safe — for example, `backup_blob_2024-08-11T00-10-01Z`. This format is used consistently as both the ZFS snapshot name and the blob object name in the bucket.
+
+Alongside the backup objects, a state file named `.backupstate.yaml` is stored in the same folder as the backups for each volume. This file records metadata about every backup — including type, size, parent reference, and the current `HEAD` snapshot — and is read and updated on every snapshot and sync operation.
+
+## Snapshot types
+
+ZFS Backup Blob supports two backup types:
+
+**Full backups** capture the complete state of the ZFS volume at the moment the snapshot is taken. A full backup has no dependency on any previous backup and can be restored independently.
+
+**Incremental backups** capture only the delta between the current snapshot and its predecessor. The predecessor is determined by the time-lexical order of snapshot names: because the naming scheme encodes the creation timestamp, lexical string comparison is sufficient to determine which snapshot came first.
+
+Because each incremental backup depends on the one before it, a complete restore of an incremental snapshot requires the entire chain — from the most recent full backup up through each subsequent incremental — to be present in blob storage. Use `backup restore --restoreAll` to have ZFS Backup Blob walk the chain automatically.
+
+## Sync reconciliation
+
+Snapshots created via `group snapshot` are automatically tagged internally so that the next `group sync` knows to include them. Snapshots you create manually with the `zfs snapshot` command are intentionally ignored — this design avoids interference with other tools or workflows that also manage ZFS snapshots on the same system.
+
+When `group sync` runs, it compares the HEAD snapshot recorded in the local state against the HEAD recorded in the remote `.backupstate.yaml` state file. Only the snapshots that exist locally but are absent from remote storage are uploaded, keeping each sync as narrow as possible.
+
+For example, if your local history contains snap1 through snap4 (with snap4 as the local HEAD) and remote storage contains only snap1 through snap2 (with snap2 as the remote HEAD), the sync command will upload snap3 and snap4 — and no more.
+
+## Multiple configuration files
+
+Each invocation of `zfs-backup-blob` reads a single configuration file. By passing `--configPath` to any command you can direct a specific volume group at a different configuration — pointing it at a different S3 bucket, using a distinct set of credentials, applying a separate encryption key, or enforcing different throttle limits. This makes it straightforward to manage groups with different backup policies without running separate installations of the tool.

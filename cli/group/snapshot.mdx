@@ -1,0 +1,53 @@
+---
+title: "group snapshot — create ZFS snapshots for a backup group"
+sidebarTitle: "snapshot"
+description: "Create full or incremental ZFS snapshots for every volume in a backup group. Snapshots are stored locally and remain there until uploaded with group sync."
+---
+
+`group snapshot` creates ZFS snapshots for every volume registered in the target backup group. Pass `--type full` to capture a complete snapshot of each volume, or `--type incremental` to capture only the changes since the last snapshot. Newly created snapshots are stored on the local ZFS pool and are not transferred to blob storage until you run [`group sync`](/cli/group/sync).
+
+## Usage
+
+```bash
+zfs-backup-blob group snapshot [flags]
+```
+
+## Flags
+
+<ParamField body="-t, --type" type="string" required>
+  The kind of snapshot to create. Accepted values: `full`, `incremental`.
+</ParamField>
+
+<ParamField body="-g, --group" type="string" default="default">
+  The backup group whose volumes should be snapshotted. Omit to target the `default` group.
+</ParamField>
+
+<ParamField body="-c, --configPath" type="string" default="~/.bbackup.yaml">
+  Path to the configuration file. Inherited from the root command.
+</ParamField>
+
+<ParamField body="-l, --logLevel" type="string" default="disabled">
+  Log verbosity level. Accepted values: `debug`, `disabled`. Inherited from the root command.
+</ParamField>
+
+## Examples
+
+```bash
+# Create full snapshots for all volumes in the default group
+zfs-backup-blob group snapshot --type full
+
+# Create incremental snapshots for a named group
+zfs-backup-blob group snapshot --type incremental --group production
+```
+
+<Note>
+  Snapshots are created locally on the ZFS pool and are **not** uploaded to blob storage automatically. Run [`group sync`](/cli/group/sync) after this command to transfer them to remote storage.
+</Note>
+
+<Note>
+  ZFS snapshots are not created atomically across multiple volumes. Each volume in the group is snapshotted in sequence, so there may be a small time difference between the earliest and latest snapshot in a single run.
+</Note>
+
+<Info>
+  Snapshot names follow the pattern `backup_blob_<ISO8601 timestamp>`, for example `backup_blob_2024-06-01T02:00:00Z`. This naming scheme is used internally for ordering and reconciliation during sync.
+</Info>

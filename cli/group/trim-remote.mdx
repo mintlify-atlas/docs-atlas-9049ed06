@@ -1,0 +1,53 @@
+---
+title: "group trim-remote — delete old backups from blob storage"
+sidebarTitle: "trim-remote"
+description: "Apply the remote_trim_policy from your config file to prune old backup blobs from S3-compatible storage for a backup group, with an optional dry-run mode."
+---
+
+`group trim-remote` deletes old backup blobs from your S3-compatible blob storage for every volume in a backup group. It applies the `remote_trim_policy` defined in your configuration file to determine which blobs are eligible for removal, pruning the oldest entries first. Use the `--dry-run` flag to see exactly which blobs would be deleted before making any irreversible changes to your remote storage.
+
+## Usage
+
+```bash
+zfs-backup-blob group trim-remote [flags]
+```
+
+## Flags
+
+<ParamField body="-g, --group" type="string" required default="default">
+  The backup group whose remote backups should be trimmed. This flag is required.
+</ParamField>
+
+<ParamField body="-d, --dry-run" type="boolean" default="false">
+  When set, the command lists the blobs that would be deleted without actually deleting them. No objects are removed from blob storage.
+</ParamField>
+
+<ParamField body="-c, --configPath" type="string" default="~/.bbackup.yaml">
+  Path to the configuration file. Inherited from the root command.
+</ParamField>
+
+<ParamField body="-l, --logLevel" type="string" default="disabled">
+  Log verbosity level. Accepted values: `debug`, `disabled`. Inherited from the root command.
+</ParamField>
+
+## Examples
+
+```bash
+# Preview which blobs would be deleted (no changes made)
+zfs-backup-blob group trim-remote --group production --dry-run
+
+# Execute the trim and delete old blobs
+zfs-backup-blob group trim-remote --group production
+```
+
+<Tip>
+  Always run with `--dry-run` first to review the list of blobs scheduled for deletion. Once objects are removed from blob storage they cannot be restored through this tool.
+</Tip>
+
+<Warning>
+  Deleted blobs are permanently removed from your bucket and cannot be recovered unless your bucket has object versioning enabled on the storage provider side. Verify your retention requirements before running without `--dry-run`.
+</Warning>
+
+<Note>
+  The retention rules used by this command are driven entirely by the `remote_trim_policy` block in your configuration file. See the [trim policies reference](/configuration/trim-policies) for the available policy options and how to configure them.
+</Note>

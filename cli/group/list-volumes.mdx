@@ -1,0 +1,40 @@
+---
+title: "group list-volumes — list volumes registered for backup"
+sidebarTitle: "list-volumes"
+description: "Print a table of all ZFS volumes registered for backup, showing the VOLUME and GROUP columns, across every group configured in the active config file."
+---
+
+`group list-volumes` prints every ZFS volume that has been registered with `group add-volume`, regardless of which backup group it belongs to. The output is a formatted table with two columns — `VOLUME` for the ZFS dataset path and `GROUP` for the backup group it belongs to — making it easy to audit your backup configuration at a glance.
+
+## Usage
+
+```bash
+zfs-backup-blob group list-volumes [flags]
+```
+
+## Flags
+
+<ParamField body="-c, --configPath" type="string" default="~/.bbackup.yaml">
+  Path to the configuration file. Inherited from the root command.
+</ParamField>
+
+<ParamField body="-l, --logLevel" type="string" default="disabled">
+  Log verbosity level. Accepted values: `debug`, `disabled`. Inherited from the root command.
+</ParamField>
+
+## Example
+
+```bash
+zfs-backup-blob group list-volumes
+```
+
+Example output:
+
+```
++------------------------------+---------+
+| VOLUME                       | GROUP   |
++------------------------------+---------+
+| pool/volume1                 | default |
+| pool/volume2                 | prod    |
++------------------------------+---------+
+```

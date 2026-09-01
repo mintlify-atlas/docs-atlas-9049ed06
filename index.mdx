@@ -1,20 +1,64 @@
 ---
-title: "Introduction"
-description: "Welcome to your project"
+title: "ZFS Backup Blob: Back up ZFS snapshots to blob storage"
+sidebarTitle: "Home"
+description: "ZFS Backup Blob is a CLI tool for backing up ZFS snapshots to S3-compatible blob storage with encryption, throttling, and automated retention policies."
 ---
 
-Write a short description of your product here. What it does, who it's for, and what they can accomplish with it.
+ZFS Backup Blob is an open-source command-line tool that automates the process of backing up ZFS snapshots to any S3-compatible blob storage. It supports full and incremental backups, optional AES-256-GCM encryption, bandwidth throttling, and configurable trim policies to manage storage retention — both locally and remotely.
 
-<Tip>
-  Ready to make this your own? Start by editing this page. Update your `docs.json` file to customize your site. Then fill out the [Quickstart](/quickstart) page.
-</Tip>
+<CardGroup cols={2}>
+  <Card title="Installation" icon="download" href="/getting-started/installation">
+    Download and install the binary on Linux or macOS
+  </Card>
+  <Card title="Quickstart" icon="rocket" href="/getting-started/quickstart">
+    Back up your first ZFS volume to S3 in five steps
+  </Card>
+  <Card title="Configuration" icon="gear" href="/configuration/config-file">
+    Learn how to configure stages, encryption, and trim policies
+  </Card>
+  <Card title="CLI Reference" icon="terminal" href="/cli/overview">
+    Explore every command, subcommand, and flag
+  </Card>
+</CardGroup>
 
-<Card title="Quickstart" icon="rocket" href="/quickstart">
-  This card links to the quickstart page in your project.
-</Card>
-<Card title="Components" icon="puzzle-piece" href="https://mintlify.com/docs/components">
-  Add cards, callouts, steps, tabs, and more to design and structure your pages.
-</Card>
-<Card title="Settings" icon="gear" href="https://mintlify.com/docs/organize/settings">
-  Set your site name, branding, and navigation in the `docs.json` file.
-</Card>
+## How it works
+
+ZFS Backup Blob uses a **pipeline-style stage configuration**: data flows from the ZFS source through optional middleware stages (encryption, throttling) into an S3-compatible sink. You define these stages in a single YAML config file.
+
+<Steps>
+  <Step title="Install the binary">
+    Download the latest release from GitHub and place it on your `PATH`.
+  </Step>
+  <Step title="Write a config file">
+    Create `~/.bbackup.yaml` defining your S3 bucket and any optional middleware stages.
+  </Step>
+  <Step title="Register volumes">
+    Add ZFS volumes to a backup group with `zfs-backup-blob group add-volume`.
+  </Step>
+  <Step title="Snapshot and sync">
+    Create snapshots with `group snapshot`, then upload them with `group sync`. Schedule both commands with cron for fully automated backups.
+  </Step>
+</Steps>
+
+## Key features
+
+<CardGroup cols={2}>
+  <Card title="Full & Incremental Backups" icon="layer-group">
+    Choose between full snapshots or space-efficient incremental backups that store only the delta from the previous snapshot.
+  </Card>
+  <Card title="AES-256-GCM Encryption" icon="lock">
+    Add a `crypt` stage to encrypt all backup data end-to-end before it leaves your machine.
+  </Card>
+  <Card title="Bandwidth Throttling" icon="gauge">
+    Insert a `throttle` stage to cap upload and download speeds, preventing backups from saturating your network.
+  </Card>
+  <Card title="S3-Compatible Storage" icon="cloud">
+    Works with AWS S3, Backblaze B2, MinIO, and any S3-compatible API via `baseEndpoint` and `usePathStyle` options.
+  </Card>
+  <Card title="Volume Groups" icon="folder-tree">
+    Group multiple ZFS volumes together and snapshot or sync them all with a single command.
+  </Card>
+  <Card title="Trim Policies" icon="scissors">
+    Define simple string policies (e.g. `IFIFIF`) to automatically prune old backups from both local storage and the remote blob store.
+  </Card>
+</CardGroup>

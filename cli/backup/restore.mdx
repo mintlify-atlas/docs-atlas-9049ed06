@@ -1,0 +1,55 @@
+---
+title: "backup restore — restore a ZFS volume from blob storage"
+sidebarTitle: "restore"
+description: "Restore a ZFS volume from a backup stored in blob storage. Requires --blob-key and --target. By default, --restoreAll replays the full backup chain including all incrementals."
+---
+
+`backup restore` downloads a backup from blob storage and receives it into a ZFS volume at the path you specify. By default the command walks back through the snapshot chain to find the most recent full backup and replays every incremental on top of it, fully reconstructing the volume state at the point the specified snapshot was taken.
+
+## Usage
+
+```bash
+zfs-backup-blob backup restore [flags]
+```
+
+## Flags
+
+<ParamField query="-b, --blob-key" type="string" required>
+  The S3 key of the backup to restore, excluding any storage prefix. Obtain this value from the `KEY` column returned by [`backup list`](/cli/backup/list).
+
+  **Example:** `zfs-pool/volume1/backup_blob_2024-08-11T00-10-01Z`
+</ParamField>
+
+<ParamField query="-t, --target" type="string" required>
+  The destination ZFS path where the backup will be received. The target dataset will be created if it does not already exist.
+
+  **Example:** `zfs-pool/restored-volume`
+</ParamField>
+
+<ParamField query="-r, --restoreAll" type="boolean" default="true">
+  When `true` (the default), the restore process walks back through the backup chain to locate the most recent full backup and then replays all intermediate incremental snapshots in order, up to and including the one identified by `--blob-key`. Set to `false` to restore only the single snapshot specified by `--blob-key`.
+</ParamField>
+
+<ParamField query="-c, --configPath" type="string" default="~/.bbackup.yaml">
+  Path to the configuration file. Inherited from the root command.
+</ParamField>
+
+<ParamField query="-l, --logLevel" type="string" default="disabled">
+  Log verbosity level. Set to `debug` for verbose output or `disabled` to suppress logs. Inherited from the root command.
+</ParamField>
+
+## Example
+
+```bash
+zfs-backup-blob backup restore \
+  --blob-key zfs-pool/volume1/backup_blob_2024-08-11T00-10-01Z \
+  --target zfs-pool/restored-volume
+```
+
+<Note>
+  With `--restoreAll` set to `true` (the default), the command automatically resolves the complete restore chain: it identifies the full backup that anchors the chain, downloads it first, and then applies each incremental snapshot in chronological order until the requested snapshot is reached. Set `--restoreAll=false` only if you need to receive a single snapshot object in isolation and will manage chain reconstruction yourself.
+</Note>
+
+<Tip>
+  Run [`backup list --volume <pool/vol>`](/cli/backup/list) before restoring to browse available backup keys and confirm the snapshot you want to recover is present in blob storage.
+</Tip>

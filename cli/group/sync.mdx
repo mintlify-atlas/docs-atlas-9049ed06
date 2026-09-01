@@ -1,0 +1,56 @@
+---
+title: "group sync — upload pending snapshots to blob storage"
+sidebarTitle: "sync"
+description: "Upload all unsynced ZFS snapshots for a backup group to S3-compatible blob storage by reconciling the local HEAD snapshot against the remote HEAD snapshot."
+---
+
+`group sync` transfers unsynced snapshots for every volume in a backup group to your configured S3-compatible blob storage. Before uploading, the command reconciles the local state against the remote state: it compares the most recent snapshot stored remotely (the remote HEAD) with the most recent snapshot on the local pool (the local HEAD) and uploads every snapshot in between. This means you can call `group snapshot` multiple times before running `group sync`, and all accumulated snapshots will be uploaded in a single pass.
+
+## Usage
+
+```bash
+zfs-backup-blob group sync [flags]
+```
+
+## Flags
+
+<ParamField body="-g, --group" type="string" default="default">
+  The backup group to sync. Omit to target the `default` group.
+</ParamField>
+
+<ParamField body="-c, --configPath" type="string" default="~/.bbackup.yaml">
+  Path to the configuration file. Inherited from the root command.
+</ParamField>
+
+<ParamField body="-l, --logLevel" type="string" default="disabled">
+  Log verbosity level. Accepted values: `debug`, `disabled`. Inherited from the root command.
+</ParamField>
+
+## Examples
+
+```bash
+# Sync all pending snapshots for the default group
+zfs-backup-blob group sync
+
+# Sync a named group
+zfs-backup-blob group sync --group production
+```
+
+<Note>
+  `group sync` uploads **all** snapshots that have accumulated since the last successful sync. You can run [`group snapshot`](/cli/group/snapshot) as often as you like and defer the upload — for example to batch network I/O — and `group sync` will catch up in one shot.
+</Note>
+
+<Tip>
+  Combine `group snapshot` and `group sync` in a cron job for a fully automated backup pipeline:
+
+  ```bash
+  # Example cron: daily full backup at 2 am
+  0 2 * * * zfs-backup-blob group snapshot --type full && zfs-backup-blob group sync
+  ```
+
+  For higher-frequency backups, use `--type incremental` to keep snapshot size small and switch to `--type full` on a less frequent schedule (e.g. weekly).
+</Tip>
+
+<Warning>
+  Only snapshots created by this tool (via `group snapshot`) are synced. Snapshots you create manually with `zfs snapshot` are intentionally ignored by `group sync` and will never be uploaded.
+</Warning>

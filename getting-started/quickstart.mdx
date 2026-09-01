@@ -1,0 +1,88 @@
+---
+title: "Get started with ZFS Backup Blob"
+sidebarTitle: "Quickstart"
+description: "Walk through a complete first backup with ZFS Backup Blob — from writing the config file to syncing a ZFS snapshot to S3 and verifying it."
+---
+
+This guide walks you through backing up a ZFS volume to S3-compatible storage for the first time. By the end you will have a working configuration, a full snapshot uploaded to your bucket, and confirmation that the backup is visible in remote storage.
+
+<Note>
+  This guide assumes you already have ZFS Backup Blob installed (see [Installation](/getting-started/installation)) and that your environment has:
+  - A ZFS pool named `zfs-pool` with a volume named `volume1` (i.e. `zfs-pool/volume1`)
+  - An S3-compatible bucket with credentials (access key and secret) ready to use
+</Note>
+
+<Steps>
+  <Step title="Create the configuration file">
+    Create `~/.bbackup.yaml` with your S3 credentials and a ZFS stage that points to it:
+
+    ```yaml
+    stages:
+      s3:
+        type: s3
+        bucket: <bucket>
+        region: <region>
+        accessKey: <accessKey>
+        accessSecret: <accessSecret>
+      zfs:
+        type: zfs
+        remote: s3
+    ```
+
+    Replace `<bucket>`, `<region>`, `<accessKey>`, and `<accessSecret>` with your actual values. The `remote: s3` field tells the ZFS stage to push data through the `s3` stage defined above.
+  </Step>
+  <Step title="Add a volume to the backup group">
+    Register the ZFS volume with the default backup group so ZFS Backup Blob knows which datasets to manage:
+
+    ```bash
+    zfs-backup-blob group add-volume --volume zfs-pool/volume1
+    ```
+  </Step>
+  <Step title="Create a full snapshot">
+    Take a full snapshot of all volumes in the backup group:
+
+    ```bash
+    zfs-backup-blob group snapshot --type full
+    ```
+
+    This creates a ZFS snapshot locally. It does not upload anything yet.
+  </Step>
+  <Step title="Sync snapshots to remote storage">
+    Upload the snapshot to your S3 bucket:
+
+    ```bash
+    zfs-backup-blob group sync
+    ```
+
+    ZFS Backup Blob compresses and streams the snapshot data to the remote stage configured in `~/.bbackup.yaml`.
+  </Step>
+  <Step title="Verify the backup">
+    Confirm the backup landed in remote storage by listing backups for the volume:
+
+    ```bash
+    zfs-backup-blob backup list --volume zfs-pool/volume1
+    ```
+
+    You should see output similar to:
+
+    ```
+    +--------------------------------------+------+-------+
+    | KEY                                  | TYPE | SIZE  |
+    +--------------------------------------+------+-------+
+    | zfs-pool/volume1/backup_blob_...     | full | 111MB |
+    +--------------------------------------+------+-------+
+    ```
+  </Step>
+</Steps>
+
+<Tip>
+  To keep backups running automatically, add `zfs-backup-blob group snapshot --type incremental && zfs-backup-blob group sync` to a cron job. For example, to run nightly at 2 AM:
+
+  ```bash
+  0 2 * * * /usr/local/bin/zfs-backup-blob group snapshot --type incremental && /usr/local/bin/zfs-backup-blob group sync
+  ```
+</Tip>
+
+<Note>
+  Once a full backup exists, you can create incremental backups by passing `--type incremental` to `group snapshot`. Incremental snapshots only transfer the data that changed since the last snapshot, making them significantly faster and smaller than full backups.
+</Note>

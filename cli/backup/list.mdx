@@ -1,0 +1,47 @@
+---
+title: "backup list — view remote backups for a volume"
+sidebarTitle: "list"
+description: "List all backups stored in blob storage for a given ZFS volume. The output table shows each backup's key, type (full or incremental), and size — use the key with backup restore."
+---
+
+`backup list` queries your configured blob storage and prints a table of all backups held remotely for a specific ZFS volume. Use this command to audit what is stored, verify that recent backups landed successfully, or look up the exact blob key needed to run a restore.
+
+## Usage
+
+```bash
+zfs-backup-blob backup list [flags]
+```
+
+## Flags
+
+<ParamField query="--volume" type="string" required>
+  The ZFS volume or filesystem to query, in `pool/vol` format. All backups stored under this path in blob storage will be returned.
+
+  **Example:** `zfs-pool/volume1`
+</ParamField>
+
+<ParamField query="-c, --configPath" type="string" default="~/.bbackup.yaml">
+  Path to the configuration file. Inherited from the root command.
+</ParamField>
+
+<ParamField query="-l, --logLevel" type="string" default="disabled">
+  Log verbosity level. Set to `debug` for verbose output or `disabled` to suppress logs. Inherited from the root command.
+</ParamField>
+
+## Example
+
+```bash
+zfs-backup-blob backup list --volume zfs-pool/volume1
+```
+
+### Example output
+
+```
++------------------------------------+------+-------+
+| KEY                                | TYPE | SIZE  |
++------------------------------------+------+-------+
+| zfs-pool/volume1/backup_blob_...   | full | 111MB |
++------------------------------------+------+-------+
+```
+
+The `KEY` column contains the blob storage key for each backup entry. Pass this value directly to the `--blob-key` flag of [`backup restore`](/cli/backup/restore) to recover that snapshot.

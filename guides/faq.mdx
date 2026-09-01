@@ -1,0 +1,86 @@
+---
+title: "Frequently asked questions about ZFS Backup Blob"
+sidebarTitle: "FAQ"
+description: "Answers to common questions about scheduling automated backups, preventing state file corruption, recovering from upload errors, and using per-group configuration files."
+---
+
+The questions below cover the scenarios that come up most often when running ZFS Backup Blob in production. If your question is not listed here, check the [architecture guide](/guides/architecture) for deeper background on how the tool works internally.
+
+<AccordionGroup>
+
+<Accordion title="How do I schedule automated backups?">
+The recommended approach is to use the [Linux cron daemon](https://www.redhat.com/sysadmin/automate-linux-tasks-cron). Add entries to your crontab that call `zfs-backup-blob` at your desired frequency. For example, to take a weekly full backup every Sunday at 02:00 and a daily incremental backup on all other days at 02:00:
+
+```bash
+# Weekly full backup — every Sunday at 02:00
+0 2 * * 0 zfs-backup-blob group snapshot --type full && zfs-backup-blob group sync
+
+# Daily incremental backup — Monday through Saturday at 02:00
+0 2 * * 1-6 zfs-backup-blob group snapshot --type incremental && zfs-backup-blob group sync
+```
+
+Adjust the schedule and group flags to match your retention policy. Run `crontab -e` to install these entries for the user that has the necessary ZFS and S3 permissions.
+</Accordion>
+
+<Accordion title="How do I make sure the state file is not corrupted?">
+The `.backupstate.yaml` state file is read and written on every snapshot and sync operation. If two `zfs-backup-blob` processes run concurrently against the same group, they can produce conflicting writes and leave the state file in an inconsistent state.
+
+To prevent this, ensure that no two cron jobs (or other automation scripts) operate on the same group at the same time. If your schedule makes overlap possible — for example, a sync job that occasionally runs longer than its interval — wrap the invocation in a DIY lockfile:
+
+```bash
+#!/bin/bash
+LOCK=/tmp/zfs-backup-blob-my-group.lock
+exec 9>"$LOCK"
+flock -n 9 || { echo "Another instance is running. Exiting."; exit 1; }
+
+zfs-backup-blob group snapshot --group my-group --type incremental
+zfs-backup-blob group sync --group my-group
+```
+
+This pattern ensures only one instance runs at a time and subsequent invocations exit cleanly rather than racing.
+</Accordion>
+
+<Accordion title="An error occurred during upload. What should I do?">
+It is safe to retry the failed command without any cleanup. The sync command is idempotent: it compares the local HEAD against the remote HEAD and re-uploads only the snapshots that have not yet landed in blob storage.
+
+If an upload was interrupted mid-transfer, the sync will restart that particular object upload from the beginning. This is slightly wasteful in terms of bandwidth but it is always safe — a partial object in the bucket will be overwritten, and no data corruption will result. Retry as many times as necessary until the sync completes successfully.
+</Accordion>
+
+<Accordion title="How do I use different configurations for different volume groups?">
+Pass `--configPath` on every `zfs-backup-blob` command to specify the configuration file that applies to that invocation:
+
+```bash
+zfs-backup-blob group snapshot --group critical-volumes --configPath /etc/zfs-backup/critical.yaml
+zfs-backup-blob group sync    --group critical-volumes --configPath /etc/zfs-backup/critical.yaml
+```
+
+Each configuration file can point to a different S3 bucket, use distinct credentials, apply a different encryption key, or enforce separate throttle limits. This allows you to maintain fine-grained backup policies per group without running separate tool installations. See [Stages configuration](/configuration/stages) for the full list of configurable options.
+</Accordion>
+
+<Accordion title="How do incremental backups work?">
+When you create an incremental snapshot, ZFS Backup Blob uses the time-lexical order of snapshot names to determine the base (previous) snapshot. Because snapshot names embed an RFC 3339 timestamp — for example `backup_blob_2024-08-11T00-10-01Z` — a simple string comparison is sufficient to establish ordering.
+
+The incremental backup object stored in blob storage contains only the ZFS send stream delta between the base snapshot and the new one, making it considerably smaller than a full backup for volumes that change incrementally.
+
+To restore an incremental backup, the complete chain back to the most recent full backup must be intact in blob storage. Run `backup restore --restoreAll` to have ZFS Backup Blob automatically walk the parent chain and apply each delta in order, reconstructing the volume at the target location. See the [backup restore CLI reference](/cli/backup/restore) for all available flags.
+</Accordion>
+
+<Accordion title="Can I use S3-compatible storage like Backblaze B2 or MinIO?">
+Yes. ZFS Backup Blob uses the AWS S3 SDK, which supports any S3-compatible endpoint. Set the `baseEndpoint` field in your S3 stage configuration to the provider's S3 API URL, and set `usePathStyle: true` if the provider requires path-style addressing (most non-AWS providers do):
+
+```yaml
+stages:
+  s3:
+    type: s3
+    bucket: my-bucket
+    region: us-east-1
+    accessKey: <accessKey>
+    accessSecret: <accessSecret>
+    baseEndpoint: https://s3.us-east-005.backblazeb2.com
+    usePathStyle: true
+```
+
+See [Stages configuration](/configuration/stages) for the complete set of S3 stage options.
+</Accordion>
+
+</AccordionGroup>

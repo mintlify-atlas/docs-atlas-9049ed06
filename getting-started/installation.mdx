@@ -1,0 +1,85 @@
+---
+title: "Install ZFS Backup Blob on Linux and macOS"
+sidebarTitle: "Installation"
+description: "Download and install ZFS Backup Blob on Linux or macOS, choose between beta and nightly release channels, and add the binary to your PATH."
+---
+
+ZFS Backup Blob is a CLI tool that backs up ZFS snapshots to S3-compatible blob storage. This page explains how to download the binary for your platform, choose the right release channel, place it on your PATH, and understand the global flags available across all commands.
+
+## Requirements
+
+The ZFS CLI must be installed on your system and accessible from your `PATH` before using ZFS Backup Blob. You can verify this by running `zfs version` in your terminal.
+
+## Release channels
+
+ZFS Backup Blob is published through two release channels on the [GitHub releases page](https://github.com/backup-blob/zfs-backup-blob/releases):
+
+- **beta** — Stable tagged releases. Recommended for most users.
+- **next** — Nightly builds tracking the latest commits. Intended for testing upcoming features.
+
+For production use, always pick a **beta** release.
+
+## Install on Linux
+
+<Steps>
+  <Step title="Download the archive">
+    Go to the [GitHub releases page](https://github.com/backup-blob/zfs-backup-blob/releases), find the latest beta release, and download the `tar.gz` archive that matches your architecture (e.g. `zfs-backup-blob_Linux_x86_64.tar.gz` for 64-bit x86).
+  </Step>
+  <Step title="Extract the binary">
+    ```bash
+    tar -xzf zfs-backup-blob_Linux_x86_64.tar.gz
+    ```
+  </Step>
+  <Step title="Move the binary to your PATH">
+    ```bash
+    sudo mv zfs-backup-blob /usr/local/bin/zfs-backup-blob
+    ```
+  </Step>
+  <Step title="Verify the installation">
+    ```bash
+    zfs-backup-blob --help
+    ```
+  </Step>
+</Steps>
+
+## Install on macOS
+
+<Warning>
+  macOS support is experimental. Use at your own risk.
+</Warning>
+
+<Steps>
+  <Step title="Download the archive">
+    Go to the [GitHub releases page](https://github.com/backup-blob/zfs-backup-blob/releases), find the latest beta release, and download the `tar.gz` archive for your Mac (e.g. `zfs-backup-blob_Darwin_x86_64.tar.gz` for Intel or `zfs-backup-blob_Darwin_arm64.tar.gz` for Apple Silicon).
+  </Step>
+  <Step title="Extract the binary">
+    ```bash
+    tar -xzf zfs-backup-blob_Darwin_arm64.tar.gz
+    ```
+  </Step>
+  <Step title="Move the binary to your PATH">
+    ```bash
+    sudo mv zfs-backup-blob /usr/local/bin/zfs-backup-blob
+    ```
+  </Step>
+  <Step title="Verify the installation">
+    ```bash
+    zfs-backup-blob --help
+    ```
+  </Step>
+</Steps>
+
+## Global flags
+
+The following flags are available on every ZFS Backup Blob command:
+
+| Flag | Short | Default | Description |
+|---|---|---|---|
+| `--configPath` | `-c` | `~/.bbackup.yaml` | Path to the configuration file |
+| `--logLevel` | `-l` | `disabled` | Logging verbosity — `debug` or `disabled` |
+
+Pass `--logLevel debug` when troubleshooting to see detailed output for any command:
+
+```bash
+zfs-backup-blob --logLevel debug group sync
+```

@@ -1,0 +1,71 @@
+---
+title: "Trim policies: manage backup retention automatically"
+sidebarTitle: "Trim Policies"
+description: "How ZFS Backup Blob's FIFO string-based trim policies work, and how to configure remote and local policies to control how many full and incremental backups are retained."
+---
+
+Trim policies let you automatically prune old backups from blob storage and old snapshots from local ZFS pools, keeping storage costs and disk usage under control. ZFS Backup Blob applies trim policies on demand — they are not run automatically on every backup — so you control exactly when old data is removed.
+
+## How the policy string works
+
+A trim policy is a plain string made up of two characters:
+
+- **`F`** — retain one full backup or snapshot
+- **`I`** — retain one incremental backup or snapshot
+
+The number of each character in the string determines how many of that type are kept. For example, `IFIFIF` keeps three full backups and three incremental backups.
+
+Retention is applied in **FIFO** (first-in, first-out) order: the oldest backups that exceed the policy are deleted first, and the most recent ones matching the policy are preserved.
+
+The **arrangement** of the characters does not change the result — only the count of each character matters. `FIFIF`, `FFIIF`, `IIIFF`, and `IIIFFF` (for six characters) would all retain the same counts. Write the string in whatever order makes it easiest to read.
+
+---
+
+## Remote trim policy
+
+The remote trim policy controls how many backup blobs are retained on the blob storage backend. Blobs that exceed the policy are permanently deleted from the bucket.
+
+**Configuration field:** `remote_trim_policy` in the [config file](/configuration/config-file).
+
+```yaml
+remote_trim_policy: IFIFIF
+```
+
+**Translates to:** Always keep the last 3 full backups and the last 3 incremental backups on blob storage. Any older full or incremental blobs beyond those counts are removed when the trim command is run.
+
+**CLI command:** Run [`zfs-backup-blob group trim-remote`](/cli/group/trim-remote) to execute the remote trim policy for a group:
+
+```bash
+zfs-backup-blob group trim-remote --group tank/data
+```
+
+---
+
+## Local trim policy
+
+The local trim policy controls how many ZFS snapshots are retained on the local machine. Snapshots that exceed the policy are destroyed with `zfs destroy`.
+
+**Configuration field:** `local_trim_policy` in the [config file](/configuration/config-file).
+
+```yaml
+local_trim_policy: FFFF
+```
+
+**Translates to:** Always keep the last 4 full snapshots locally. Older full snapshots beyond that count are destroyed when the trim command is run.
+
+**CLI command:** Run [`zfs-backup-blob group trim-local`](/cli/group/trim-local) to execute the local trim policy for a group:
+
+```bash
+zfs-backup-blob group trim-local --group tank/data
+```
+
+---
+
+<Tip>
+  Pass `--dry-run` to either trim command to preview exactly which backups or snapshots would be deleted before committing to the operation:
+
+  ```bash
+  zfs-backup-blob group trim-remote --group tank/data --dry-run
+  zfs-backup-blob group trim-local  --group tank/data --dry-run
+  ```
+</Tip>

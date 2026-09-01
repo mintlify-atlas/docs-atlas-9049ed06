@@ -1,0 +1,119 @@
+---
+title: "Common ZFS Backup Blob usage examples"
+sidebarTitle: "Examples"
+description: "Practical examples covering everything from writing your first config file and adding volumes to backup groups, to creating snapshots, syncing to S3, and restoring a backup."
+---
+
+The following examples walk through the most common ZFS Backup Blob workflows in order. Each step builds on the previous one, so you can follow along from a fresh installation all the way to a successful restore.
+
+<Steps>
+
+### Set up a basic configuration file
+
+Before running any CLI command you must create a configuration file at `~/.bbackup.yaml`. The minimal configuration below connects ZFS Backup Blob to an S3-compatible bucket:
+
+```yaml
+stages:
+  s3:
+    type: s3
+    bucket: <bucket>
+    region: <region>
+    accessKey: <accessKey>
+    accessSecret: <accessSecret>
+  zfs:
+    type: zfs
+    remote: s3
+```
+
+If you need bandwidth throttling or at-rest encryption, both can be added as additional stages in the pipeline. See [Stages configuration](/configuration/stages) for the full list of available stage types and options.
+
+### Add a volume to a backup group
+
+With your configuration in place, register the ZFS volume you want to back up. The example below adds `pool/volume` to a group named `my-group`:
+
+```bash
+zfs-backup-blob group add-volume --volume pool/volume --group my-group
+```
+
+If you only need a single backup group you can omit the `--group` flag entirely — the volume will be assigned to the built-in `default` group.
+
+### List volumes in backup groups
+
+To verify which volumes are registered and which groups they belong to, run:
+
+```bash
+zfs-backup-blob group list-volumes
+```
+
+Expected output:
+
+```
++------------------------------+---------+
+| VOLUME                       | GROUP   |
++------------------------------+---------+
+| pool/volume                  | default |
++------------------------------+---------+
+```
+
+### Create snapshots
+
+Before data can be uploaded, ZFS snapshots must be created and tagged with a backup type. The command below creates a full snapshot for every volume in `my-group`:
+
+```bash
+zfs-backup-blob group snapshot --group my-group --type full
+```
+
+<Note>
+  ZFS snapshots are not created atomically across volumes — each volume is
+  snapshotted in sequence. The snapshots remain local until you push them to
+  blob storage with the sync command.
+</Note>
+
+### Upload snapshots to blob storage
+
+Once snapshots have been created, sync them to S3:
+
+```bash
+zfs-backup-blob group sync --group my-group
+```
+
+<Note>
+  This command uploads all accumulated snapshots since the last successful sync.
+  You are free to delay running sync after taking snapshots — any backlog of
+  unsynced snapshots will be uploaded in a single pass the next time you run
+  this command.
+</Note>
+
+### View remote backups for a volume
+
+To inspect which backups are stored in blob storage for a given volume, run:
+
+```bash
+zfs-backup-blob backup list --volume pool/volume
+```
+
+Expected output:
+
+```
++------------------------------------+------+-------+
+| KEY                                | TYPE | SIZE  |
++------------------------------------+------+-------+
+| pool/volume/backup_blob_2024-...   | full | 111MB |
++------------------------------------+------+-------+
+```
+
+The value in the `KEY` column is used as the `--blob-key` argument when restoring.
+
+### Restore a backup
+
+To restore a specific backup, pass its key and a target volume name. ZFS Backup Blob will create a new volume at the target location containing the restored data:
+
+```bash
+zfs-backup-blob backup restore \
+  --blob-key pool/volume/backup_blob_2024-08-11T00-10-01Z \
+  --target pool/restored-volume
+```
+
+This creates a new ZFS volume `pool/restored-volume` populated with the contents of the backup. For the full set of restore flags — including `--restoreAll` for incremental chains — see the [backup restore CLI reference](/cli/backup/restore).
+
+</Steps>

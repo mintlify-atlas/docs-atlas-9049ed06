@@ -1,0 +1,49 @@
+---
+title: "group trim-local — delete old local ZFS snapshots"
+sidebarTitle: "trim-local"
+description: "Apply the local_trim_policy from your config file to prune old ZFS snapshots from the local pool for a backup group, with an optional dry-run mode."
+---
+
+`group trim-local` prunes old ZFS snapshots from the local pool for every volume in a backup group. It applies the `local_trim_policy` defined in your configuration file, using FIFO ordering to determine which snapshots are eligible for deletion — the oldest snapshots are removed first until the policy constraints are satisfied. Use the `--dry-run` flag to preview what would be deleted before committing to any removals.
+
+## Usage
+
+```bash
+zfs-backup-blob group trim-local [flags]
+```
+
+## Flags
+
+<ParamField body="-g, --group" type="string" required default="default">
+  The backup group whose local snapshots should be trimmed. This flag is required.
+</ParamField>
+
+<ParamField body="-d, --dry-run" type="boolean" default="false">
+  When set, the command lists the snapshots that would be deleted without actually deleting them. No changes are made to the local ZFS pool.
+</ParamField>
+
+<ParamField body="-c, --configPath" type="string" default="~/.bbackup.yaml">
+  Path to the configuration file. Inherited from the root command.
+</ParamField>
+
+<ParamField body="-l, --logLevel" type="string" default="disabled">
+  Log verbosity level. Accepted values: `debug`, `disabled`. Inherited from the root command.
+</ParamField>
+
+## Examples
+
+```bash
+# Preview which snapshots would be deleted (no changes made)
+zfs-backup-blob group trim-local --group production --dry-run
+
+# Execute the trim and delete old snapshots
+zfs-backup-blob group trim-local --group production
+```
+
+<Tip>
+  Always run with `--dry-run` first to verify the set of snapshots that will be removed before executing a real trim. Local ZFS snapshot deletion is permanent.
+</Tip>
+
+<Note>
+  The retention rules used by this command are driven entirely by the `local_trim_policy` block in your configuration file. See the [trim policies reference](/configuration/trim-policies) for the available policy options and how to configure them.
+</Note>

@@ -1,0 +1,99 @@
+{
+  "projectType": "cli-tool",
+  "projectName": "ZFS Backup Blob",
+  "projectDescription": "A CLI tool for backing up ZFS snapshots to S3-compatible blob storage with support for encryption, bandwidth throttling, and automated trim policies.",
+  "theme": "aspen",
+  "primaryColor": "#17181c",
+  "lightColor": null,
+  "darkColor": null,
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "getting-started/installation",
+              "getting-started/quickstart"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "configuration/config-file",
+              "configuration/stages",
+              "configuration/trim-policies"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/examples",
+              "guides/architecture",
+              "guides/faq"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "CLI Reference",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "cli/overview"
+            ]
+          },
+          {
+            "group": "backup",
+            "pages": [
+              "cli/backup/full",
+              "cli/backup/incremental",
+              "cli/backup/list",
+              "cli/backup/restore"
+            ]
+          },
+          {
+            "group": "group",
+            "pages": [
+              "cli/group/add-volume",
+              "cli/group/list-volumes",
+              "cli/group/snapshot",
+              "cli/group/sync",
+              "cli/group/trim-local",
+              "cli/group/trim-remote"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Full and incremental ZFS snapshot backups to S3-compatible blob storage",
+    "Pipeline-style stage configuration (ZFS source → optional middleware → S3 sink)",
+    "AES-256-GCM encryption stage for encrypting backups in transit and at rest",
+    "Bandwidth throttling stage to control upload/download speeds",
+    "Volume groups for managing and batch-operating multiple ZFS volumes",
+    "Sync reconciliation to upload only unsynced snapshots",
+    "Configurable trim policies to automatically prune old local and remote backups",
+    "Support for S3-compatible APIs (Backblaze B2, MinIO, etc.)",
+    "Dry-run mode for trim operations",
+    "Cron-friendly design for automated backup scheduling"
+  ],
+  "publicApiSurface": [
+    "zfs-backup-blob backup full --snap <pool/vol@snapshot>",
+    "zfs-backup-blob backup incremental --snap <pool/vol@snapshot> --base <pool/vol@base>",
+    "zfs-backup-blob backup list --volume <pool/vol>",
+    "zfs-backup-blob backup restore --blob-key <key> --target <pool/vol>",
+    "zfs-backup-blob group add-volume --volume <pool/vol> [--group <name>]",
+    "zfs-backup-blob group list-volumes",
+    "zfs-backup-blob group snapshot --type <full|incremental> [--group <name>]",
+    "zfs-backup-blob group sync [--group <name>]",
+    "zfs-backup-blob group trim-local --group <name> [--dry-run]",
+    "zfs-backup-blob group trim-remote --group <name> [--dry-run]",
+    "--configPath / -c global flag (default: ~/.bbackup.yaml)",
+    "--logLevel / -l global flag (debug|disabled)"
+  ]
+}

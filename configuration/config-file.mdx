@@ -1,0 +1,79 @@
+---
+title: "ZFS Backup Blob configuration file reference"
+sidebarTitle: "Config File"
+description: "Reference for the ZFS Backup Blob YAML configuration file, covering its default location, how to override it, and all top-level fields including stages and trim policies."
+---
+
+ZFS Backup Blob is driven by a single YAML configuration file that defines the stage pipeline, remote trim policy, and local trim policy for each backup group. By default the tool looks for this file at `~/.bbackup.yaml`. You can point it at a different path using the `-c` / `--configPath` flag on any command.
+
+## Default location
+
+```
+~/.bbackup.yaml
+```
+
+Override at runtime with:
+
+```bash
+zfs-backup-blob group backup --group tank/data -c /etc/bbackup/tank-data.yaml
+```
+
+## Full example
+
+The example below includes every top-level field. It defines a four-stage pipeline (S3 sink → throttle → crypt → ZFS source) together with both trim policies.
+
+```yaml
+remote_trim_policy: IFIFIF
+local_trim_policy: FFFF
+stages:
+  storage:
+    type: s3
+    bucket: my-bucket
+    region: us-east-1
+    accessKey: my-access-key
+    accessSecret: my-secret
+    baseEndpoint: https://s3.example.com
+    usePathStyle: true
+    prefix: deep/nested/folder
+    maxRetries: 15
+    uploadPartSize: 62914560
+  throttle:
+    type: throttle
+    remote: storage
+    writeSpeed: 1048576
+    readSpeed: 1048576
+  crypt:
+    type: crypt
+    remote: throttle
+    password: my_secret_password
+  zfs:
+    type: zfs
+    remote: crypt
+    zfsPath: /bin/zfs
+```
+
+## Field reference
+
+<ParamField path="stages" type="map" required>
+  A map of named stage objects that together form the data pipeline. Each entry must have a `type` field specifying the stage kind (`s3`, `zfs`, `throttle`, or `crypt`). The pipeline is wired together by each stage's `remote` field, which references the name of the next stage in the chain. See [Stages](/configuration/stages) for the full field reference for each stage type.
+</ParamField>
+
+<ParamField path="remote_trim_policy" type="string" required>
+  A policy string controlling how many full (`F`) and incremental (`I`) backup blobs to retain on remote storage. Required when running remote trim operations. See [Trim Policies](/configuration/trim-policies) for details on the DSL.
+</ParamField>
+
+<ParamField path="local_trim_policy" type="string" required>
+  A policy string controlling how many full (`F`) and incremental (`I`) ZFS snapshots to retain locally. Required when running local trim operations. See [Trim Policies](/configuration/trim-policies) for details on the DSL.
+</ParamField>
+
+## Using multiple config files
+
+Each config file represents an independent backup group. To manage different datasets with different settings — for example, separate retention policies or different S3 buckets — create one config file per group and pass it via `--configPath` at runtime:
+
+```bash
+# Back up the tank/data dataset
+zfs-backup-blob group backup --group tank/data -c ~/.bbackup-data.yaml
+
+# Back up the tank/db dataset with different settings
+zfs-backup-blob group backup --group tank/db -c ~/.bbackup-db.yaml
+```

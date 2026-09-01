@@ -1,0 +1,157 @@
+---
+title: "Pipeline stages: S3, ZFS, throttle, and crypt"
+sidebarTitle: "Stages"
+description: "Reference for all ZFS Backup Blob pipeline stages — ZFS source, S3 sink, throttle middleware, and crypt middleware — including every configuration field for each stage type."
+---
+
+Stages define how data flows from the ZFS source through optional middleware layers to the S3 sink. Each stage is an entry inside the `stages` map in the [config file](/configuration/config-file), and stages are chained together by setting the `remote` field to the name of the next stage in the pipeline. A minimal pipeline needs at least one `zfs` (source) stage and one `s3` (sink) stage. Middleware stages such as `throttle` and `crypt` can be inserted anywhere between them.
+
+```
+zfs  →  (crypt)  →  (throttle)  →  s3
+```
+
+Every stage object must include a `type` field that tells the tool which stage kind to instantiate.
+
+---
+
+## S3 Stage
+
+The S3 stage is the **sink** — it is always the final destination in the pipeline and uploads backup data to an S3-compatible blob storage bucket. Because it is the sink, it does not have a `remote` field.
+
+```yaml
+type: s3
+bucket: my-bucket
+region: us-east-1
+accessKey: my-access-key
+accessSecret: my-secret
+baseEndpoint: https://s3.eu-central-003.backblazeb2.com  # optional
+usePathStyle: true  # optional
+prefix: deep/nested/folder  # optional
+maxRetries: 15  # optional
+uploadPartSize: 62914560  # optional, in bytes
+```
+
+<ParamField path="type" type="string" required>
+  Must be `s3`.
+</ParamField>
+
+<ParamField path="bucket" type="string" required>
+  The name of the S3 bucket to upload backup blobs to.
+</ParamField>
+
+<ParamField path="accessKey" type="string" required>
+  The access key ID used to authenticate with the S3 API.
+</ParamField>
+
+<ParamField path="accessSecret" type="string" required>
+  The secret access key used to authenticate with the S3 API.
+</ParamField>
+
+<ParamField path="region" type="string" required>
+  The AWS region (or equivalent region string) of the target bucket.
+</ParamField>
+
+<ParamField path="baseEndpoint" type="string">
+  A custom S3 API endpoint URL. Set this when using an S3-compatible service such as Backblaze B2, MinIO, or Cloudflare R2 instead of AWS S3.
+</ParamField>
+
+<ParamField path="usePathStyle" type="bool">
+  When `true`, the client uses path-style URLs (`https://endpoint/bucket/key`) instead of virtual-hosted-style URLs. Required by some S3-compatible APIs.
+</ParamField>
+
+<ParamField path="prefix" type="string">
+  An optional folder prefix applied to every object key written to the bucket. Use this to store backups under a specific directory, for example `deep/nested/folder`.
+</ParamField>
+
+<ParamField path="maxRetries" type="int">
+  Maximum number of retry attempts for failed S3 API requests. When omitted, the AWS SDK default is used.
+</ParamField>
+
+<ParamField path="uploadPartSize" type="int">
+  Size in bytes of each part in a multipart upload. Increasing this value reduces the number of API calls on high-bandwidth connections. For example, `62914560` equals 60 MiB.
+</ParamField>
+
+<Note>
+  It's recommended to configure the S3 stage explicitly in the config file. Using S3 SDK environment variables (such as `AWS_ACCESS_KEY_ID` or `AWS_REGION`) is only an escape hatch and may produce unexpected behaviour.
+</Note>
+
+---
+
+## ZFS Stage
+
+The ZFS stage is the **source** — it reads ZFS snapshots and streams backup data into the pipeline. It must always reference the next stage via `remote`.
+
+```yaml
+type: zfs
+zfsPath: /bin/zfs  # optional
+remote: next_stage
+```
+
+<ParamField path="type" type="string" required>
+  Must be `zfs`.
+</ParamField>
+
+<ParamField path="remote" type="string" required>
+  The name of the next stage in the pipeline that this stage feeds data into.
+</ParamField>
+
+<ParamField path="zfsPath" type="string">
+  Absolute path to the `zfs` executable. When omitted, the tool expects `zfs` to be available on the system `PATH`.
+</ParamField>
+
+---
+
+## Throttle Stage
+
+The throttle stage is a **middleware** that limits the upload and download bandwidth used during backup and restore operations. Insert it between the ZFS source and the S3 sink to prevent backups from saturating your network connection.
+
+```yaml
+type: throttle
+remote: next_stage
+writeSpeed: 1048576  # in bytes per second
+readSpeed: 1048576   # in bytes per second
+```
+
+<ParamField path="type" type="string" required>
+  Must be `throttle`.
+</ParamField>
+
+<ParamField path="remote" type="string" required>
+  The name of the next stage in the pipeline.
+</ParamField>
+
+<ParamField path="writeSpeed" type="int" required>
+  Maximum upload (write) throughput in bytes per second when sending a backup to the S3 sink. Set to `0` or omit to apply no limit.
+</ParamField>
+
+<ParamField path="readSpeed" type="int" required>
+  Maximum download (read) throughput in bytes per second when restoring a backup from the S3 sink. Set to `0` or omit to apply no limit.
+</ParamField>
+
+---
+
+## Crypt Stage
+
+The crypt stage is a **middleware** that transparently encrypts data before it reaches the S3 sink and decrypts it on the way back during a restore. It uses AES-256-GCM authenticated encryption.
+
+```yaml
+type: crypt
+remote: next_stage
+password: my_secret_password
+```
+
+<ParamField path="type" type="string" required>
+  Must be `crypt`.
+</ParamField>
+
+<ParamField path="remote" type="string" required>
+  The name of the next stage in the pipeline.
+</ParamField>
+
+<ParamField path="password" type="string" required>
+  The password used to derive the AES-256-GCM encryption key. This password is required for both backup and restore operations — losing it means losing access to your backups.
+</ParamField>
+
+<Warning>
+  Keep your encryption password secret. Do not commit the config file containing a plaintext password to source control. Consider using a secrets manager or environment variable substitution to inject the password at runtime, and store a secure copy of the password in a separate, offline location.
+</Warning>
